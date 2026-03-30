@@ -44,6 +44,8 @@ public class view extends javax.swing.JFrame {
 
         lblIdade.setText("Idade");
 
+        lblResultado.addActionListener(this::lblResultadoActionPerformed);
+
         btnCalcular.setIcon(new javax.swing.ImageIcon(getClass().getResource("/calculadora.jpg"))); // NOI18N
         btnCalcular.setText("Calcular");
         btnCalcular.addActionListener(this::btnCalcularActionPerformed);
@@ -104,6 +106,10 @@ public class view extends javax.swing.JFrame {
         // Exibe o resultado na caixa de texto (Convertendo o número para String)
         lblResultado.setText(Integer.toString(idade)); 
     }//GEN-LAST:event_btnCalcularActionPerformed
+
+    private void lblResultadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lblResultadoActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_lblResultadoActionPerformed
 
     /**
      * @param args the command line arguments
