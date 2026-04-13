@@ -17,4 +17,5 @@
         <maven.compiler.release>25</maven.compiler.release>
         <exec.mainClass>com.mycompany.prg03nayelenmenezes.Prg03nayelenmenezes</exec.mainClass>
     </properties>
+    <name>Prg03nayelenmenezes</name>
 </project>
