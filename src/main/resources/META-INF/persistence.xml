@@ -3,23 +3,15 @@
   
   <persistence-unit name="cursoPU" transaction-type="RESOURCE_LOCAL">
     <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-    
-    <!-- Mapeamento da sua classe entidade -->
-    <class>br.com.ifba.curso.entity.Curso</class>
-    
-    <properties>
-      <!-- Configurações de Conexão (Exemplo para MySQL) -->
-      <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/db_curso"/>
-      <property name="javax.persistence.jdbc.user" value="root"/>
-      <property name="javax.persistence.jdbc.password" value="sua_senha"/>
-      <property name="javax.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
+    <class>seu.pacote.Curso</class> <properties>
+        <property name="javax.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/cursoPU"/>
+        <property name="javax.persistence.jdbc.user" value="postgres"/>
+        <property name="javax.persistence.jdbc.password" value="tatu"/>
+        <property name="javax.persistence.jdbc.driver" value="org.postgresql.Driver"/>
 
-      <!-- Configurações específicas do Hibernate -->
-      <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL8Dialect"/>
-      <property name="hibernate.show_sql" value="true"/>
-      <property name="hibernate.format_sql" value="true"/>
-      <property name="hibernate.hbm2ddl.auto" value="update"/>
+        <property name="hibernate.hbm2ddl.auto" value="update"/>
+        <property name="hibernate.show_sql" value="true"/>
+        <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
     </properties>
-    
-  </persistence-unit>
+</persistence-unit>
 </persistence>

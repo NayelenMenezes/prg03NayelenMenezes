@@ -4,19 +4,24 @@
  */
 package br.com.ifba.curso.view;
 
-/**
- *
- * @author mealf
- */
+import br.com.ifba.curso.entity.Curso;
+import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
 public class CursoListar extends javax.swing.JFrame {
     
+    private EntityManagerFactory emf = Persistence.createEntityManagerFactory("cursoPU"); 
+    private EntityManager em;
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CursoListar.class.getName());
 
-    /**
-     * Creates new form CursoListar
-     */
+ 
     public CursoListar() {
         initComponents();
+        listarCursos();
 
     }
 
@@ -30,12 +35,13 @@ public class CursoListar extends javax.swing.JFrame {
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
-        jButton3 = new javax.swing.JButton();
-        jTextField2 = new javax.swing.JTextField();
-        jButton4 = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
+        btnHomeScreen = new javax.swing.JButton();
+        btnPesquisa = new javax.swing.JButton();
+        txtPesquisa = new javax.swing.JTextField();
+        btnAdicionar = new javax.swing.JButton();
+        lblPesquisa = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        tblInformacao = new javax.swing.JTable();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setBackground(new java.awt.Color(0, 51, 84));
@@ -43,30 +49,37 @@ public class CursoListar extends javax.swing.JFrame {
         jPanel1.setBackground(new java.awt.Color(0, 51, 102));
         jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jButton3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/impressora.png"))); // NOI18N
-        jButton3.setText("Listar");
-        jButton3.addActionListener(this::jButton3ActionPerformed);
-        jPanel1.add(jButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(535, 30, 110, -1));
+        btnHomeScreen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/impressora.png"))); // NOI18N
+        btnHomeScreen.setText("HomeScreen");
+        jPanel1.add(btnHomeScreen, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 30, 130, -1));
 
-        jTextField2.setForeground(new java.awt.Color(102, 102, 102));
-        jTextField2.setBorder(null);
-        jPanel1.add(jTextField2, new org.netbeans.lib.awtextra.AbsoluteConstraints(24, 30, 230, -1));
+        btnPesquisa.setBorderPainted(false);
+        btnPesquisa.setContentAreaFilled(false);
+        btnPesquisa.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnPesquisa.setFocusPainted(false);
+        btnPesquisa.addActionListener(this::btnPesquisaActionPerformed);
+        jPanel1.add(btnPesquisa, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 30, 30, 20));
 
-        jButton4.setBackground(new java.awt.Color(204, 222, 228));
-        jButton4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/butao_mais.png"))); // NOI18N
-        jButton4.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
-        jButton4.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        jButton4.addActionListener(this::jButton4ActionPerformed);
-        jPanel1.add(jButton4, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 30, 120, -1));
+        txtPesquisa.setForeground(new java.awt.Color(102, 102, 102));
+        txtPesquisa.setBorder(null);
+        txtPesquisa.addActionListener(this::txtPesquisaActionPerformed);
+        jPanel1.add(txtPesquisa, new org.netbeans.lib.awtextra.AbsoluteConstraints(24, 30, 230, 20));
 
-        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/barra_de_pesquisa.png"))); // NOI18N
-        jPanel1.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 10, 290, 60));
+        btnAdicionar.setBackground(new java.awt.Color(204, 222, 228));
+        btnAdicionar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/butao_mais.png"))); // NOI18N
+        btnAdicionar.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        btnAdicionar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnAdicionar.addActionListener(this::btnAdicionarActionPerformed);
+        jPanel1.add(btnAdicionar, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 30, 120, -1));
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        lblPesquisa.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/barra_de_pesquisa.png"))); // NOI18N
+        jPanel1.add(lblPesquisa, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 10, 290, 60));
+
+        tblInformacao.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {"PEIXE", "4", null, "Fazenda", "           🗑", "          📝"},
-                {"PÃO", "76", null, "Fazenda", "           🗑", "           📝"},
-                {"LEITE", "34", null, "Fazenda", "           🗑", "           📝"},
+                {"PEIXE", "4", null, "Fazenda", "          [X]", "     [EDITAR]"},
+                {"PÃO", "76", null, "Fazenda", "          [X]", "     [EDITAR]"},
+                {"LEITE", "34", null, "Fazenda", "          [X]", "     [EDITAR]"},
                 {null, null, null, null, "", null},
                 {null, null, null, null, null, null},
                 {null, null, null, null, null, null}
@@ -75,9 +88,14 @@ public class CursoListar extends javax.swing.JFrame {
                 "NOME", "QUANTIDADE", "DESCRIÇÃO", "FORNECEDOR", "REMOVER", "EDITAR"
             }
         ));
-        jTable1.setFillsViewportHeight(true);
-        jTable1.setSelectionForeground(new java.awt.Color(102, 102, 102));
-        jScrollPane1.setViewportView(jTable1);
+        tblInformacao.setFillsViewportHeight(true);
+        tblInformacao.setSelectionForeground(new java.awt.Color(102, 102, 102));
+        tblInformacao.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tblInformacaoMouseClicked(evt);
+            }
+        });
+        jScrollPane1.setViewportView(tblInformacao);
 
         jPanel1.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(12, 97, 670, 410));
 
@@ -95,24 +113,277 @@ public class CursoListar extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton4ActionPerformed
+    private void btnAdicionarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAdicionarActionPerformed
+        try {
+            //janelinha pro usuario inserir os dados
+            String nome = JOptionPane.showInputDialog(this, "Nome do Curso:");
+            String quantidade = JOptionPane.showInputDialog(this, "Quantidade: ");
+            String descricao = JOptionPane.showInputDialog(this, "Descrição do Curso:");
+            String fornecedor = JOptionPane.showInputDialog(this, "Fornecedor:");
+            
+            //validação simples, caso o usuário deixe nome em branco
+            if (nome != null && !nome.trim().isEmpty()){
+                
+                //inicia conexão com o banco
+                em = emf.createEntityManager();
+                
+                //cria o objeto Curso e preenche com oq foi digitado
+                Curso novoCurso = new Curso();
+                novoCurso.setNome(nome);
+                novoCurso.setDescricao(descricao);
+                novoCurso.setFornecedor(fornecedor);
+                
+                //testando se ele digitou letras em vez de números
+                try {
+                    int qtd = Integer.parseInt(quantidade);
+                    novoCurso.setQuantidade(qtd);
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(this, "Quantidade deve ser um número");
+                    return;
+                }
+                
+                //salva no banco de dados
+                em.getTransaction().begin();;
+                em.persist(novoCurso);
+                em.getTransaction().commit();
+                
+                JOptionPane.showMessageDialog(this, "Curso '" + nome + "' salvo com sucesso!");
+                
+                //chama metodo para atualizar a tabela
+                listarCursos();
+            }
+        } catch (Exception e) {
+            //se algo der errado no banco, dar um rollback
+            if (em != null && em.getTransaction().isActive()) {
+               em.getTransaction().rollback();
+            }
+            JOptionPane.showMessageDialog(this, "Erro ao salvar no banco: " + e.getMessage(), "Erro de Sistema", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            //fecha a conexão se ela tiver aberta
+            if (em != null && em.isOpen()){
+              em.close();
+            }
+        }
+    }//GEN-LAST:event_btnAdicionarActionPerformed
 
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton3ActionPerformed
+    private void buscarCurso() {
+        String termoBusca = txtPesquisa.getText().trim();
+        
+        if (termoBusca.isEmpty()) {
+            listarCursos();
+            return;
+        }
+        
+        try {
+            em = emf.createEntityManager();
+            
+            //vai buscar pelo nome ou descrição
+            String buscar = "SELECT c FROM Curso c WHERE lower(c.nome) LIKE lower(:termo) OR lower(c.descricao) LIKE lower(:termo)";
+            
+            List<Curso> resultados = em.createQuery(buscar, Curso.class).setParameter("termo", "%" + termoBusca + "%").getResultList();        
+            
+            //se não encontrar nada
+            if (resultados.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Nenhum curso encontrado com: " + termoBusca);
+            } else {
+                //se encontrar apenas 1, mostra a janelinha com detalhes
+                if (resultados.size() == 1) {
+                    Curso c = resultados.get(0);
+                    String info = "ID: " + c.getId() +
+                                  "\nNome: " + c.getNome() +
+                                  "\nQuantidade: " + c.getQuantidade() +
+                                  "\nFornecedor: " + c.getFornecedor() +
+                                  "\nDescrição: " + c.getDescricao();
+                    JOptionPane.showMessageDialog(this, info, "Detalhes do Curso", JOptionPane.INFORMATION_MESSAGE);
+                }
+                
+                atualizarTabelaComFiltro(resultados);
+            }
+        } catch (Exception e){
+            JOptionPane.showMessageDialog(this, "Erro na busca: " + e.getMessage());
+        } finally {
+            if (em != null && em.isOpen()) em.close();
+        }
+    }
+    
+    // Método auxiliar para não repetir código
+    private void atualizarTabelaComFiltro(List<Curso> lista) {
+        DefaultTableModel modelo = (DefaultTableModel) tblInformacao.getModel();
+        modelo.setRowCount(0);
+        for (Curso c : lista) {
+            modelo.addRow(new Object[]{
+                c.getNome(),
+                c.getQuantidade(),
+                c.getDescricao(),
+                c.getFornecedor(),
+                "[X]",
+                "[EDITAR]"
+            });
+        }
+    }
+    
+    private void btnPesquisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPesquisaActionPerformed
+        buscarCurso();
+    }//GEN-LAST:event_btnPesquisaActionPerformed
 
+    private void txtPesquisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtPesquisaActionPerformed
+        buscarCurso();
+    }//GEN-LAST:event_txtPesquisaActionPerformed
+
+    private void tblInformacaoMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblInformacaoMouseClicked
+        //descobre qual linha e coluna foram clicadas
+        int linha = tblInformacao.getSelectedRow();
+        int coluna = tblInformacao.getSelectedColumn();
+
+        if (coluna == 4) {
+            // Pega o ID ou o nome para saber quem remover
+            String nome = tblInformacao.getValueAt(linha, 0).toString();
+
+            int confirmacao = JOptionPane.showConfirmDialog(this, 
+                    "Deseja realmente excluir o curso: " + nome + "?", 
+                    "Confirmar Exclusão", JOptionPane.YES_NO_OPTION);
+
+            if (confirmacao == JOptionPane.YES_OPTION) {
+                remove(nome);
+            }
+        }
+
+        if (coluna == 5) {
+            //pega os dados atuais da linha
+            String nomeAtual = tblInformacao.getValueAt(linha, 0).toString();
+            String qtdAtual = tblInformacao.getValueAt(linha, 1).toString();
+            String descAtual = tblInformacao.getValueAt(linha, 2).toString();
+            String fornAtual = tblInformacao.getValueAt(linha, 3).toString();
+
+            //abre as janelinhas para o usuário alterar (já sugerindo o valor atual)
+            String novoNome = JOptionPane.showInputDialog(this, "Nome do Curso:", nomeAtual);
+            String novaQtd = JOptionPane.showInputDialog(this, "Quantidade:", qtdAtual);
+            String novaDesc = JOptionPane.showInputDialog(this, "Descrição:", descAtual);
+            String novoForn = JOptionPane.showInputDialog(this, "Fornecedor:", fornAtual);
+
+            //se o usuário não cancelou (clicou em OK)
+            if (novoNome != null) {
+                editarCursoNoBanco(nomeAtual, novoNome, novaQtd, novaDesc, novoForn);
+            }
+        }
+    }//GEN-LAST:event_tblInformacaoMouseClicked
+    
+    private void editarCursoNoBanco(String nomeAntigo, String novoNome, String novaQtd, String novaDesc, String novoForn) {
+        try {
+            em = emf.createEntityManager();
+            em.getTransaction().begin();
+
+            //busca o curso original pelo nome antigo
+            Curso cursoParaEditar = em.createQuery("SELECT c FROM Curso c WHERE c.nome = :n", Curso.class)
+                                      .setParameter("n", nomeAntigo)
+                                      .getSingleResult();
+
+            if (cursoParaEditar != null) {
+                //atualiza os dados do objeto
+                cursoParaEditar.setNome(novoNome);
+                cursoParaEditar.setDescricao(novaDesc);
+                cursoParaEditar.setFornecedor(novoForn);
+
+                try {
+                    cursoParaEditar.setQuantidade(Integer.parseInt(novaQtd));
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(this, "Quantidade inválida, mantendo a anterior.");
+                }
+
+                //finaliza a transação
+                em.getTransaction().commit();
+
+                JOptionPane.showMessageDialog(this, "Curso atualizado com sucesso!");
+                listarCursos(); // Atualiza a tabela
+            }
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            JOptionPane.showMessageDialog(this, "Erro ao editar: " + e.getMessage());
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+    
+    private void remove(String nomeCurso) {
+        try {
+            em = emf.createEntityManager();
+            em.getTransaction().begin();
+
+            //busca o objeto completo do banco de dados primeiro
+            Curso cursoParaRemover = em.createQuery("SELECT c FROM Curso c WHERE c.nome = :nome", Curso.class)
+                    .setParameter("nome", nomeCurso)
+                    .getSingleResult();
+
+            //remove
+            if (cursoParaRemover != null) {
+                em.remove(cursoParaRemover);
+                em.getTransaction().commit();
+                JOptionPane.showMessageDialog(this, "Curso removido com sucesso!");
+
+                //atualiza a tabela para o curso sumir da tela
+                listarCursos();
+            }
+
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            JOptionPane.showMessageDialog(this, "Erro ao remover: " + e.getMessage());
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+    
+    private void listarCursos(){
+        try {
+            //abre conexão com o banco
+            em = emf.createEntityManager();
+            
+            //cria a consulta para buscar todos os cursos
+            List<Curso> lista = em.createQuery("SELECT c FROM Curso c", Curso.class).getResultList();
+            
+            //pega o modelo da tabela e limpa as linhas atuais
+            DefaultTableModel modelo = (DefaultTableModel) tblInformacao.getModel();
+            modelo.setRowCount(0);
+            
+            //percorre a lista de cursos e adiciona cada um na tabela
+            for (Curso c : lista) {
+                modelo.addRow(new Object[]{
+                    c.getNome(),
+                    c.getQuantidade(),
+                    c.getDescricao(),
+                    c.getFornecedor(),
+                    "[X]",
+                    "[EDITAR]"
+                });
+            }
+            
+            //ajusta a altura da linha
+            tblInformacao.setRowHeight(30);
+        } catch (Exception e){
+            JOptionPane.showMessageDialog(this, "Erro ao listar cursos: " + e.getMessage());
+        } finally {
+           if (em != null && em.isOpen()){
+            em.close();
+           }
+        }
+    }
+    
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+
         /* Set the Nimbus look and feel */
+
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+
          * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+
          */
+
         try {
+
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
                     javax.swing.UIManager.setLookAndFeel(info.getClassName());
@@ -122,19 +393,20 @@ public class CursoListar extends javax.swing.JFrame {
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
 
+        //</editor-fold>
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> new CursoListar().setVisible(true));
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JLabel jLabel1;
+    private javax.swing.JButton btnAdicionar;
+    private javax.swing.JButton btnHomeScreen;
+    private javax.swing.JButton btnPesquisa;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JTextField jTextField2;
+    private javax.swing.JLabel lblPesquisa;
+    private javax.swing.JTable tblInformacao;
+    private javax.swing.JTextField txtPesquisa;
     // End of variables declaration//GEN-END:variables
 }
