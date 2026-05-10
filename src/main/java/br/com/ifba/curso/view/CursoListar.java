@@ -4,23 +4,27 @@
  */
 package br.com.ifba.curso.view;
 
+import br.com.ifba.curso.dao.CursoDao;
+import br.com.ifba.curso.dao.CursoIDao;
 import br.com.ifba.curso.entity.Curso;
 import java.util.List;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
 public class CursoListar extends javax.swing.JFrame {
     
-    private EntityManagerFactory emf = Persistence.createEntityManagerFactory("cursoPU"); 
-    private EntityManager em;
+    private final CursoIDao cursoDao = new CursoDao();
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CursoListar.class.getName());
 
  
     public CursoListar() {
         initComponents();
+        
+        // Configura a coluna 0 (ID) para ser invisível
+        tblInformacao.getColumnModel().getColumn(0).setMinWidth(0);
+        tblInformacao.getColumnModel().getColumn(0).setMaxWidth(0);
+        tblInformacao.getColumnModel().getColumn(0).setWidth(0);
+        
         listarCursos();
 
     }
@@ -77,17 +81,25 @@ public class CursoListar extends javax.swing.JFrame {
 
         tblInformacao.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {"PEIXE", "4", null, "Fazenda", "          [X]", "     [EDITAR]"},
-                {"PÃO", "76", null, "Fazenda", "          [X]", "     [EDITAR]"},
-                {"LEITE", "34", null, "Fazenda", "          [X]", "     [EDITAR]"},
-                {null, null, null, null, "", null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null}
+                {null, "PEIXE", "4", null, "Fazenda", "          [X]", "     [EDITAR]"},
+                {null, "PÃO", "76", null, "Fazenda", "          [X]", "     [EDITAR]"},
+                {null, "LEITE", "34", null, "Fazenda", "          [X]", "     [EDITAR]"},
+                {null, null, null, null, null, "", null},
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null}
             },
             new String [] {
-                "NOME", "QUANTIDADE", "DESCRIÇÃO", "FORNECEDOR", "REMOVER", "EDITAR"
+                "id", "NOME", "QUANTIDADE", "DESCRIÇÃO", "FORNECEDOR", "REMOVER", "EDITAR"
             }
-        ));
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, true, true, true, true, true, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
         tblInformacao.setFillsViewportHeight(true);
         tblInformacao.setSelectionForeground(new java.awt.Color(102, 102, 102));
         tblInformacao.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -124,9 +136,6 @@ public class CursoListar extends javax.swing.JFrame {
             //validação simples, caso o usuário deixe nome em branco
             if (nome != null && !nome.trim().isEmpty()){
                 
-                //inicia conexão com o banco
-                em = emf.createEntityManager();
-                
                 //cria o objeto Curso e preenche com oq foi digitado
                 Curso novoCurso = new Curso();
                 novoCurso.setNome(nome);
@@ -142,10 +151,8 @@ public class CursoListar extends javax.swing.JFrame {
                     return;
                 }
                 
-                //salva no banco de dados
-                em.getTransaction().begin();;
-                em.persist(novoCurso);
-                em.getTransaction().commit();
+                //ponte com o dao
+                cursoDao.save(novoCurso);
                 
                 JOptionPane.showMessageDialog(this, "Curso '" + nome + "' salvo com sucesso!");
                 
@@ -153,16 +160,9 @@ public class CursoListar extends javax.swing.JFrame {
                 listarCursos();
             }
         } catch (Exception e) {
-            //se algo der errado no banco, dar um rollback
-            if (em != null && em.getTransaction().isActive()) {
-               em.getTransaction().rollback();
-            }
-            JOptionPane.showMessageDialog(this, "Erro ao salvar no banco: " + e.getMessage(), "Erro de Sistema", JOptionPane.ERROR_MESSAGE);
-        } finally {
-            //fecha a conexão se ela tiver aberta
-            if (em != null && em.isOpen()){
-              em.close();
-            }
+            //se algo der errado no banco, avisa
+            JOptionPane.showMessageDialog(this, "Erro ao salvar no banco: " + e.getMessage(), 
+                                               "Erro de Sistema", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_btnAdicionarActionPerformed
 
@@ -175,12 +175,8 @@ public class CursoListar extends javax.swing.JFrame {
         }
         
         try {
-            em = emf.createEntityManager();
-            
-            //vai buscar pelo nome ou descrição
-            String buscar = "SELECT c FROM Curso c WHERE lower(c.nome) LIKE lower(:termo) OR lower(c.descricao) LIKE lower(:termo)";
-            
-            List<Curso> resultados = em.createQuery(buscar, Curso.class).setParameter("termo", "%" + termoBusca + "%").getResultList();        
+            //procura pelo nome
+            List<Curso> resultados = cursoDao.findByNomeOrDescricao(termoBusca);
             
             //se não encontrar nada
             if (resultados.isEmpty()) {
@@ -201,9 +197,7 @@ public class CursoListar extends javax.swing.JFrame {
             }
         } catch (Exception e){
             JOptionPane.showMessageDialog(this, "Erro na busca: " + e.getMessage());
-        } finally {
-            if (em != null && em.isOpen()) em.close();
-        }
+        } 
     }
     
     // Método auxiliar para não repetir código
@@ -212,6 +206,7 @@ public class CursoListar extends javax.swing.JFrame {
         modelo.setRowCount(0);
         for (Curso c : lista) {
             modelo.addRow(new Object[]{
+                c.getId(),
                 c.getNome(),
                 c.getQuantidade(),
                 c.getDescricao(),
@@ -234,90 +229,75 @@ public class CursoListar extends javax.swing.JFrame {
         //descobre qual linha e coluna foram clicadas
         int linha = tblInformacao.getSelectedRow();
         int coluna = tblInformacao.getSelectedColumn();
-
-        if (coluna == 4) {
+        
+        //pega o id da coluna 0
+        Long id = (Long) tblInformacao.getValueAt(linha, 0);
+        
+        //botão de remover
+        if (coluna == 5) {
             // Pega o ID ou o nome para saber quem remover
-            String nome = tblInformacao.getValueAt(linha, 0).toString();
+            String nome = tblInformacao.getValueAt(linha, 1).toString();
 
             int confirmacao = JOptionPane.showConfirmDialog(this, 
                     "Deseja realmente excluir o curso: " + nome + "?", 
                     "Confirmar Exclusão", JOptionPane.YES_NO_OPTION);
 
             if (confirmacao == JOptionPane.YES_OPTION) {
-                remove(nome);
+                removerCurso(id);
             }
         }
+        
+        //botão de editar
+        if (coluna == 6) {
+                //pega as informações
+            String nome = tblInformacao.getValueAt(linha, 1).toString();
+            String qtd  = tblInformacao.getValueAt(linha, 2).toString();
+            String desc = tblInformacao.getValueAt(linha, 3).toString();
+            String forn = tblInformacao.getValueAt(linha, 4).toString();
 
-        if (coluna == 5) {
-            //pega os dados atuais da linha
-            String nomeAtual = tblInformacao.getValueAt(linha, 0).toString();
-            String qtdAtual = tblInformacao.getValueAt(linha, 1).toString();
-            String descAtual = tblInformacao.getValueAt(linha, 2).toString();
-            String fornAtual = tblInformacao.getValueAt(linha, 3).toString();
-
-            //abre as janelinhas para o usuário alterar (já sugerindo o valor atual)
-            String novoNome = JOptionPane.showInputDialog(this, "Nome do Curso:", nomeAtual);
-            String novaQtd = JOptionPane.showInputDialog(this, "Quantidade:", qtdAtual);
-            String novaDesc = JOptionPane.showInputDialog(this, "Descrição:", descAtual);
-            String novoForn = JOptionPane.showInputDialog(this, "Fornecedor:", fornAtual);
-
-            //se o usuário não cancelou (clicou em OK)
-            if (novoNome != null) {
-                editarCursoNoBanco(nomeAtual, novoNome, novaQtd, novaDesc, novoForn);
-            }
+            editarCurso(id, nome, qtd, desc, forn);
         }
     }//GEN-LAST:event_tblInformacaoMouseClicked
     
-    private void editarCursoNoBanco(String nomeAntigo, String novoNome, String novaQtd, String novaDesc, String novoForn) {
-        try {
-            em = emf.createEntityManager();
-            em.getTransaction().begin();
+    private void editarCurso(Long id, String nomeAt, String qtdAt, String descAt, String fornAt) {
+        //abre as janelas de input com os valores atuais
+        String novoNome = JOptionPane.showInputDialog(this, "Nome do Curso:", nomeAt);
+        String novaQtd  = JOptionPane.showInputDialog(this, "Quantidade:", qtdAt);
+        String novaDesc = JOptionPane.showInputDialog(this, "Descrição:", descAt);
+        String novoForn = JOptionPane.showInputDialog(this, "Fornecedor:", fornAt);
 
-            //busca o curso original pelo nome antigo
-            Curso cursoParaEditar = em.createQuery("SELECT c FROM Curso c WHERE c.nome = :n", Curso.class)
-                                      .setParameter("n", nomeAntigo)
-                                      .getSingleResult();
+        //se o usuário não cancelou
+        if (novoNome != null) {
+            try {
+                //cria o objeto e seta o id
+                Curso cursoEditado = new Curso();
+                cursoEditado.setId(id); 
+                cursoEditado.setNome(novoNome);
+                cursoEditado.setDescricao(novaDesc);
+                cursoEditado.setFornecedor(novoForn);
+                cursoEditado.setQuantidade(Integer.parseInt(novaQtd));
 
-            if (cursoParaEditar != null) {
-                //atualiza os dados do objeto
-                cursoParaEditar.setNome(novoNome);
-                cursoParaEditar.setDescricao(novaDesc);
-                cursoParaEditar.setFornecedor(novoForn);
-
-                try {
-                    cursoParaEditar.setQuantidade(Integer.parseInt(novaQtd));
-                } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(this, "Quantidade inválida, mantendo a anterior.");
-                }
-
-                //finaliza a transação
-                em.getTransaction().commit();
+                //chama o DAO
+                cursoDao.update(cursoEditado);
 
                 JOptionPane.showMessageDialog(this, "Curso atualizado com sucesso!");
-                listarCursos(); // Atualiza a tabela
+                listarCursos();
+
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Erro: Quantidade deve ser um número.");
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Erro ao editar: " + e.getMessage());
             }
-        } catch (Exception e) {
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            JOptionPane.showMessageDialog(this, "Erro ao editar: " + e.getMessage());
-        } finally {
-            if (em != null) em.close();
         }
     }
-    
-    private void remove(String nomeCurso) {
+    private void removerCurso(Long id) {
         try {
-            em = emf.createEntityManager();
-            em.getTransaction().begin();
-
-            //busca o objeto completo do banco de dados primeiro
-            Curso cursoParaRemover = em.createQuery("SELECT c FROM Curso c WHERE c.nome = :nome", Curso.class)
-                    .setParameter("nome", nomeCurso)
-                    .getSingleResult();
+            //busca o objeto pelo id
+            Curso cursoParaRemover = cursoDao.findById(id);
 
             //remove
             if (cursoParaRemover != null) {
-                em.remove(cursoParaRemover);
-                em.getTransaction().commit();
+                cursoDao.delete(cursoParaRemover);
                 JOptionPane.showMessageDialog(this, "Curso removido com sucesso!");
 
                 //atualiza a tabela para o curso sumir da tela
@@ -325,20 +305,14 @@ public class CursoListar extends javax.swing.JFrame {
             }
 
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
             JOptionPane.showMessageDialog(this, "Erro ao remover: " + e.getMessage());
-        } finally {
-            if (em != null) em.close();
         }
     }
     
     private void listarCursos(){
         try {
-            //abre conexão com o banco
-            em = emf.createEntityManager();
-            
-            //cria a consulta para buscar todos os cursos
-            List<Curso> lista = em.createQuery("SELECT c FROM Curso c", Curso.class).getResultList();
+            //cria uma lista e chama o metodo findAll
+            List<Curso> lista = cursoDao.findAll();
             
             //pega o modelo da tabela e limpa as linhas atuais
             DefaultTableModel modelo = (DefaultTableModel) tblInformacao.getModel();
@@ -347,6 +321,7 @@ public class CursoListar extends javax.swing.JFrame {
             //percorre a lista de cursos e adiciona cada um na tabela
             for (Curso c : lista) {
                 modelo.addRow(new Object[]{
+                    c.getId(),
                     c.getNome(),
                     c.getQuantidade(),
                     c.getDescricao(),
@@ -360,10 +335,6 @@ public class CursoListar extends javax.swing.JFrame {
             tblInformacao.setRowHeight(30);
         } catch (Exception e){
             JOptionPane.showMessageDialog(this, "Erro ao listar cursos: " + e.getMessage());
-        } finally {
-           if (em != null && em.isOpen()){
-            em.close();
-           }
         }
     }
     
