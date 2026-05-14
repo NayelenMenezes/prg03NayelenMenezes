@@ -4,16 +4,21 @@
  */
 package br.com.ifba.curso.view;
 
+import br.com.ifba.curso.controller.CursoIController;
+import br.com.ifba.curso.controller.CursoController;
+import br.com.ifba.curso.service.CursoService;
 import br.com.ifba.curso.dao.CursoDao;
-import br.com.ifba.curso.dao.CursoIDao;
 import br.com.ifba.curso.entity.Curso;
+import br.com.ifba.infrastructure.util.StringUtil;
 import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
 public class CursoListar extends javax.swing.JFrame {
     
-    private final CursoIDao cursoDao = new CursoDao();
+private final CursoIController cursoController = new CursoController(
+                                                        new CursoService(
+                                                            new CursoDao()));
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CursoListar.class.getName());
 
  
@@ -25,7 +30,7 @@ public class CursoListar extends javax.swing.JFrame {
         tblInformacao.getColumnModel().getColumn(0).setMaxWidth(0);
         tblInformacao.getColumnModel().getColumn(0).setWidth(0);
         
-        listarCursos();
+        findAll();
 
     }
 
@@ -55,6 +60,7 @@ public class CursoListar extends javax.swing.JFrame {
 
         btnHomeScreen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/impressora.png"))); // NOI18N
         btnHomeScreen.setText("HomeScreen");
+        btnHomeScreen.addActionListener(this::btnHomeScreenActionPerformed);
         jPanel1.add(btnHomeScreen, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 30, 130, -1));
 
         btnPesquisa.setBorderPainted(false);
@@ -124,60 +130,71 @@ public class CursoListar extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
+    
+    //adiciona um novo curso chamando o metodo save
     private void btnAdicionarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAdicionarActionPerformed
+        save();
+    }//GEN-LAST:event_btnAdicionarActionPerformed
+    
+    //metodo para salvar as informações
+    private void save() {
         try {
-            //janelinha pro usuario inserir os dados
+            //coleta de dados
             String nome = JOptionPane.showInputDialog(this, "Nome do Curso:");
-            String quantidade = JOptionPane.showInputDialog(this, "Quantidade: ");
+            String quantidade = JOptionPane.showInputDialog(this, "Quantidade:");
             String descricao = JOptionPane.showInputDialog(this, "Descrição do Curso:");
             String fornecedor = JOptionPane.showInputDialog(this, "Fornecedor:");
-            
-            //validação simples, caso o usuário deixe nome em branco
-            if (nome != null && !nome.trim().isEmpty()){
-                
-                //cria o objeto Curso e preenche com oq foi digitado
-                Curso novoCurso = new Curso();
-                novoCurso.setNome(nome);
-                novoCurso.setDescricao(descricao);
-                novoCurso.setFornecedor(fornecedor);
-                
-                //testando se ele digitou letras em vez de números
-                try {
-                    int qtd = Integer.parseInt(quantidade);
-                    novoCurso.setQuantidade(qtd);
-                } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(this, "Quantidade deve ser um número");
-                    return;
-                }
-                
-                //ponte com o dao
-                cursoDao.save(novoCurso);
-                
-                JOptionPane.showMessageDialog(this, "Curso '" + nome + "' salvo com sucesso!");
-                
-                //chama metodo para atualizar a tabela
-                listarCursos();
-            }
-        } catch (Exception e) {
-            //se algo der errado no banco, avisa
-            JOptionPane.showMessageDialog(this, "Erro ao salvar no banco: " + e.getMessage(), 
-                                               "Erro de Sistema", JOptionPane.ERROR_MESSAGE);
-        }
-    }//GEN-LAST:event_btnAdicionarActionPerformed
 
-    private void buscarCurso() {
+            //validação com StringUtil antes de criar o objeto
+            if (StringUtil.isEmpty(nome)) {
+                JOptionPane.showMessageDialog(this, "O nome do curso não pode estar vazio.");
+                return;
+            }
+
+            //montagem do Objeto
+            Curso novoCurso = new Curso();
+            novoCurso.setNome(nome);
+            novoCurso.setDescricao(descricao);
+            novoCurso.setFornecedor(fornecedor);
+
+            //validação de formato
+            if (!StringUtil.isNumeric(quantidade)) {
+                JOptionPane.showMessageDialog(this, "A quantidade deve ser um número válido.");
+                return;
+            }
+            novoCurso.setQuantidade(Integer.parseInt(quantidade));
+
+            //envia para o controller
+            //controller passará para o service, que validará as regras de negócio
+            cursoController.save(novoCurso); 
+
+            JOptionPane.showMessageDialog(this, "Curso '" + nome + "' salvo com sucesso!");
+
+            //atualiza a interface usando o novo nome padronizado
+            findAll();
+
+        } catch (Exception e) {
+            //captura erros de validação vindos do Service ou erros de banco do DAO
+            JOptionPane.showMessageDialog(this, "Erro ao processar: " + e.getMessage(), 
+                                          "Erro de Sistema", JOptionPane.ERROR_MESSAGE);
+        }
+        
+    }
+    
+    //procura o curso pelo nome
+    private void findByText() {
+        // usa o stringutil para validar a entrada da view
         String termoBusca = txtPesquisa.getText().trim();
         
-        if (termoBusca.isEmpty()) {
-            listarCursos();
+        if (StringUtil.isEmpty(termoBusca)) {
+            findAll();
             return;
         }
         
         try {
-            //procura pelo nome
-            List<Curso> resultados = cursoDao.findByNomeOrDescricao(termoBusca);
-            
+            //view solicita a busca ao controller
+            List<Curso> resultados = cursoController.findByText(termoBusca.trim());
+        
             //se não encontrar nada
             if (resultados.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Nenhum curso encontrado com: " + termoBusca);
@@ -193,7 +210,7 @@ public class CursoListar extends javax.swing.JFrame {
                     JOptionPane.showMessageDialog(this, info, "Detalhes do Curso", JOptionPane.INFORMATION_MESSAGE);
                 }
                 
-                atualizarTabelaComFiltro(resultados);
+                updateTable(resultados);
             }
         } catch (Exception e){
             JOptionPane.showMessageDialog(this, "Erro na busca: " + e.getMessage());
@@ -201,9 +218,10 @@ public class CursoListar extends javax.swing.JFrame {
     }
     
     // Método auxiliar para não repetir código
-    private void atualizarTabelaComFiltro(List<Curso> lista) {
+    private void updateTable(List<Curso> lista) {
         DefaultTableModel modelo = (DefaultTableModel) tblInformacao.getModel();
         modelo.setRowCount(0);
+        
         for (Curso c : lista) {
             modelo.addRow(new Object[]{
                 c.getId(),
@@ -218,24 +236,23 @@ public class CursoListar extends javax.swing.JFrame {
     }
     
     private void btnPesquisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPesquisaActionPerformed
-        buscarCurso();
+        findByText();
     }//GEN-LAST:event_btnPesquisaActionPerformed
-
+    
     private void txtPesquisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtPesquisaActionPerformed
-        buscarCurso();
+        findByText();
     }//GEN-LAST:event_txtPesquisaActionPerformed
 
+    //aciiona um evento ao clicar na tabela remover ou editar
     private void tblInformacaoMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblInformacaoMouseClicked
-        //descobre qual linha e coluna foram clicadas
         int linha = tblInformacao.getSelectedRow();
         int coluna = tblInformacao.getSelectedColumn();
-        
-        //pega o id da coluna 0
+
+        //pegamos o ID da coluna 0
         Long id = (Long) tblInformacao.getValueAt(linha, 0);
-        
+
         //botão de remover
         if (coluna == 5) {
-            // Pega o ID ou o nome para saber quem remover
             String nome = tblInformacao.getValueAt(linha, 1).toString();
 
             int confirmacao = JOptionPane.showConfirmDialog(this, 
@@ -243,13 +260,13 @@ public class CursoListar extends javax.swing.JFrame {
                     "Confirmar Exclusão", JOptionPane.YES_NO_OPTION);
 
             if (confirmacao == JOptionPane.YES_OPTION) {
-                removerCurso(id);
+                delete(id);
             }
         }
-        
+
         //botão de editar
         if (coluna == 6) {
-                //pega as informações
+            //pega as informações atuais da linha
             String nome = tblInformacao.getValueAt(linha, 1).toString();
             String qtd  = tblInformacao.getValueAt(linha, 2).toString();
             String desc = tblInformacao.getValueAt(linha, 3).toString();
@@ -258,7 +275,13 @@ public class CursoListar extends javax.swing.JFrame {
             editarCurso(id, nome, qtd, desc, forn);
         }
     }//GEN-LAST:event_tblInformacaoMouseClicked
+
+    //mostra a página como ela estava originalmente
+    private void btnHomeScreenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHomeScreenActionPerformed
+        findAll();
+    }//GEN-LAST:event_btnHomeScreenActionPerformed
     
+    //editar as informções do curso
     private void editarCurso(Long id, String nomeAt, String qtdAt, String descAt, String fornAt) {
         //abre as janelas de input com os valores atuais
         String novoNome = JOptionPane.showInputDialog(this, "Nome do Curso:", nomeAt);
@@ -266,10 +289,15 @@ public class CursoListar extends javax.swing.JFrame {
         String novaDesc = JOptionPane.showInputDialog(this, "Descrição:", descAt);
         String novoForn = JOptionPane.showInputDialog(this, "Fornecedor:", fornAt);
 
-        //se o usuário não cancelou
+        //se o usuário não cancelou (novoNome != null)
         if (novoNome != null) {
             try {
-                //cria o objeto e seta o id
+                //validação visual rápida com o StringUtil
+                if (StringUtil.isEmpty(novoNome) || !StringUtil.isNumeric(novaQtd)) {
+                    JOptionPane.showMessageDialog(this, "Dados inválidos! Verifique o nome e a quantidade.");
+                    return;
+                }
+
                 Curso cursoEditado = new Curso();
                 cursoEditado.setId(id); 
                 cursoEditado.setNome(novoNome);
@@ -277,42 +305,40 @@ public class CursoListar extends javax.swing.JFrame {
                 cursoEditado.setFornecedor(novoForn);
                 cursoEditado.setQuantidade(Integer.parseInt(novaQtd));
 
-                //chama o DAO
-                cursoDao.update(cursoEditado);
+                //chama o controller que vai chamar o service e DAO
+                cursoController.save(cursoEditado);
 
                 JOptionPane.showMessageDialog(this, "Curso atualizado com sucesso!");
-                listarCursos();
+                //atualiza a tabela
+                findAll(); 
 
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Erro: Quantidade deve ser um número.");
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Erro ao editar: " + e.getMessage());
             }
         }
     }
-    private void removerCurso(Long id) {
+    
+    //aprensenta a opção do usuário deletar o curso
+    private void delete(Long id) {
         try {
-            //busca o objeto pelo id
-            Curso cursoParaRemover = cursoDao.findById(id);
+            //a view solicita a exclusão ao controller
+            cursoController.delete(id);
 
-            //remove
-            if (cursoParaRemover != null) {
-                cursoDao.delete(cursoParaRemover);
-                JOptionPane.showMessageDialog(this, "Curso removido com sucesso!");
+            JOptionPane.showMessageDialog(this, "Curso removido com sucesso!");
 
-                //atualiza a tabela para o curso sumir da tela
-                listarCursos();
-            }
+            //atualiza a tabela para o curso sumir da tela
+            findAll();
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Erro ao remover: " + e.getMessage());
         }
     }
     
-    private void listarCursos(){
+    //lista todos os cursos
+    private void findAll(){
         try {
-            //cria uma lista e chama o metodo findAll
-            List<Curso> lista = cursoDao.findAll();
+            //agora solicita os dados ao controller, que faz a ponte até o banco
+            List<Curso> lista = cursoController.findAll();
             
             //pega o modelo da tabela e limpa as linhas atuais
             DefaultTableModel modelo = (DefaultTableModel) tblInformacao.getModel();
@@ -333,6 +359,7 @@ public class CursoListar extends javax.swing.JFrame {
             
             //ajusta a altura da linha
             tblInformacao.setRowHeight(30);
+            
         } catch (Exception e){
             JOptionPane.showMessageDialog(this, "Erro ao listar cursos: " + e.getMessage());
         }
